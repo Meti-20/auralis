@@ -18,11 +18,11 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
-  Legend,
 } from 'recharts';
-import { TrendingUp, Layers, Calendar, HelpCircle } from 'lucide-react';
+import { TrendingUp, Layers, Calendar, HelpCircle, Eye, EyeOff } from 'lucide-react';
 import { DateRange, ChartViewMode, CashFlowChartPoint } from '@/types';
 import { CASH_FLOW_CHART_DATA } from '@/data/mockData';
+import { useUser } from '@/context/UserContext';
 
 interface CashFlowAnalyticsChartProps {
   selectedRange: DateRange;
@@ -31,8 +31,16 @@ interface CashFlowAnalyticsChartProps {
 export const CashFlowAnalyticsChart: React.FC<CashFlowAnalyticsChartProps> = ({
   selectedRange,
 }) => {
+  const { preferences, formatMoney } = useUser();
   const [isMounted, setIsMounted] = useState(false);
   const [viewMode, setViewMode] = useState<ChartViewMode>('weekly');
+
+  // Series visibility controls for interactive legend
+  const [visibleSeries, setVisibleSeries] = useState({
+    income: true,
+    expenses: true,
+    netCashFlow: true,
+  });
 
   useEffect(() => {
     setIsMounted(true);
@@ -42,9 +50,21 @@ export const CashFlowAnalyticsChart: React.FC<CashFlowAnalyticsChartProps> = ({
     CASH_FLOW_CHART_DATA[selectedRange][viewMode] ||
     CASH_FLOW_CHART_DATA[selectedRange].weekly;
 
-  const formatCurrency = (val: number) => {
-    if (val >= 1000) return `$${(val / 1000).toFixed(0)}k`;
-    return `$${val}`;
+  const toggleSeries = (key: 'income' | 'expenses' | 'netCashFlow') => {
+    setVisibleSeries((prev) => {
+      // Prevent hiding all 3 series simultaneously
+      const next = { ...prev, [key]: !prev[key] };
+      if (!next.income && !next.expenses && !next.netCashFlow) {
+        return prev;
+      }
+      return next;
+    });
+  };
+
+  const formatYAxis = (val: number) => {
+    const sym = preferences.currencySymbol;
+    if (val >= 1000) return `${sym}${(val / 1000).toFixed(0)}k`;
+    return `${sym}${val}`;
   };
 
   return (
@@ -108,7 +128,7 @@ export const CashFlowAnalyticsChart: React.FC<CashFlowAnalyticsChartProps> = ({
               </Box>
             </Tooltip>
             <Chip
-              label="Real-time Reconciled"
+              label="Illustrative Cash Flow"
               size="small"
               sx={{
                 height: 20,
@@ -120,7 +140,7 @@ export const CashFlowAnalyticsChart: React.FC<CashFlowAnalyticsChartProps> = ({
             />
           </Box>
           <Typography sx={{ fontSize: '0.78rem', color: '#7D8678', mt: 0.3 }}>
-            Income, expenses, and net retained cash flow across your verified operational accounts
+            Income, expenses, and net retained cash flow across sample business accounts
           </Typography>
         </Box>
 
@@ -200,10 +220,13 @@ export const CashFlowAnalyticsChart: React.FC<CashFlowAnalyticsChartProps> = ({
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={formatCurrency}
+                tickFormatter={formatYAxis}
               />
               <RechartsTooltip
-                formatter={(val: number) => [`$${val.toLocaleString()}`, '']}
+                formatter={(val: number) => [
+                  `${preferences.currencySymbol}${val.toLocaleString()}`,
+                  '',
+                ]}
                 contentStyle={{
                   backgroundColor: '#FCFBF8',
                   border: '1px solid #DADBD5',
@@ -213,81 +236,142 @@ export const CashFlowAnalyticsChart: React.FC<CashFlowAnalyticsChartProps> = ({
                   fontFamily: 'var(--font-inter)',
                 }}
               />
-              <Area
-                type="monotone"
-                dataKey="income"
-                name="Total Income"
-                stroke="#3E502C"
-                strokeWidth={2.5}
-                fillOpacity={1}
-                fill="url(#incomeGrad)"
-              />
-              <Area
-                type="monotone"
-                dataKey="expenses"
-                name="Total Expenses"
-                stroke="#B24436"
-                strokeWidth={2}
-                fillOpacity={0}
-              />
-              <Area
-                type="monotone"
-                dataKey="netCashFlow"
-                name="Net Cash Flow"
-                stroke="#88A26A"
-                strokeWidth={2}
-                strokeDasharray="4 4"
-                fillOpacity={1}
-                fill="url(#netGrad)"
-              />
+              {visibleSeries.income && (
+                <Area
+                  type="monotone"
+                  dataKey="income"
+                  name="Total Income"
+                  stroke="#3E502C"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#incomeGrad)"
+                />
+              )}
+              {visibleSeries.expenses && (
+                <Area
+                  type="monotone"
+                  dataKey="expenses"
+                  name="Total Expenses"
+                  stroke="#B24436"
+                  strokeWidth={2}
+                  fillOpacity={0}
+                />
+              )}
+              {visibleSeries.netCashFlow && (
+                <Area
+                  type="monotone"
+                  dataKey="netCashFlow"
+                  name="Net Cash Flow"
+                  stroke="#88A26A"
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  fillOpacity={1}
+                  fill="url(#netGrad)"
+                />
+              )}
             </AreaChart>
           </ResponsiveContainer>
         )}
       </Box>
 
-      {/* Custom Legend at Bottom */}
+      {/* Interactive Legend with Series Toggles */}
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: { xs: 2, sm: 3.5 },
+          gap: { xs: 1.5, sm: 2.5 },
           mt: 2,
           pt: 1.8,
           borderTop: '1px solid #DADBD5',
           flexWrap: 'wrap',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ width: 14, height: 4, bgcolor: '#3E502C', borderRadius: 1 }} />
-          <Typography sx={{ fontSize: '0.76rem', color: '#5A6255', fontWeight: 600 }}>
-            Income (Receivables &amp; Payouts)
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ width: 14, height: 4, bgcolor: '#B24436', borderRadius: 1 }} />
-          <Typography sx={{ fontSize: '0.76rem', color: '#5A6255', fontWeight: 600 }}>
-            Expenses (Operating Outflow)
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {/* Toggle Income */}
+        <Tooltip title="Click to show/hide Income series">
           <Box
+            onClick={() => toggleSeries('income')}
             sx={{
-              width: 14,
-              height: 4,
-              bgcolor: '#88A26A',
-              borderRadius: 1,
-              borderTop: '1px dashed #3E502C',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 1.2,
+              py: 0.6,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              bgcolor: visibleSeries.income ? 'rgba(62, 80, 44, 0.08)' : 'transparent',
+              opacity: visibleSeries.income ? 1 : 0.45,
+              transition: 'all 0.15s ease',
+              '&:hover': { bgcolor: 'rgba(62, 80, 44, 0.14)' },
             }}
-          />
-          <Typography sx={{ fontSize: '0.76rem', color: '#5A6255', fontWeight: 600 }}>
-            Net Cash Flow (Surplus)
-          </Typography>
-        </Box>
+          >
+            <Box sx={{ width: 14, height: 4, bgcolor: '#3E502C', borderRadius: 1 }} />
+            <Typography sx={{ fontSize: '0.76rem', color: '#252923', fontWeight: 600 }}>
+              Income
+            </Typography>
+          </Box>
+        </Tooltip>
+
+        {/* Toggle Expenses */}
+        <Tooltip title="Click to show/hide Expenses series">
+          <Box
+            onClick={() => toggleSeries('expenses')}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 1.2,
+              py: 0.6,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              bgcolor: visibleSeries.expenses ? 'rgba(178, 68, 54, 0.08)' : 'transparent',
+              opacity: visibleSeries.expenses ? 1 : 0.45,
+              transition: 'all 0.15s ease',
+              '&:hover': { bgcolor: 'rgba(178, 68, 54, 0.14)' },
+            }}
+          >
+            <Box sx={{ width: 14, height: 4, bgcolor: '#B24436', borderRadius: 1 }} />
+            <Typography sx={{ fontSize: '0.76rem', color: '#252923', fontWeight: 600 }}>
+              Expenses
+            </Typography>
+          </Box>
+        </Tooltip>
+
+        {/* Toggle Net Cash Flow */}
+        <Tooltip title="Click to show/hide Net Cash Flow series">
+          <Box
+            onClick={() => toggleSeries('netCashFlow')}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 1.2,
+              py: 0.6,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              bgcolor: visibleSeries.netCashFlow ? 'rgba(136, 162, 106, 0.12)' : 'transparent',
+              opacity: visibleSeries.netCashFlow ? 1 : 0.45,
+              transition: 'all 0.15s ease',
+              '&:hover': { bgcolor: 'rgba(136, 162, 106, 0.2)' },
+            }}
+          >
+            <Box
+              sx={{
+                width: 14,
+                height: 4,
+                bgcolor: '#88A26A',
+                borderRadius: 1,
+                borderTop: '1px dashed #3E502C',
+              }}
+            />
+            <Typography sx={{ fontSize: '0.76rem', color: '#252923', fontWeight: 600 }}>
+              Net Cash Flow
+            </Typography>
+          </Box>
+        </Tooltip>
       </Box>
     </Paper>
   );
 };
 
 export default CashFlowAnalyticsChart;
-

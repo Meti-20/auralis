@@ -20,11 +20,13 @@ import AIInsightsCard from '@/components/dashboard/AIInsightsCard';
 import ReportsDialog from '@/components/dashboard/ReportsDialog';
 import SettingsDialog from '@/components/dashboard/SettingsDialog';
 import WelcomeScreen from '@/components/dashboard/WelcomeScreen';
+import { UserProvider, useUser } from '@/context/UserContext';
 
-export default function DashboardPage() {
+function DashboardContent() {
   const [selectedRange, setSelectedRange] = useState<DateRange>('30d');
   const [activeSection, setActiveSection] = useState<string>('overview');
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   // First-time welcome intro experience state
   const [showWelcome, setShowWelcome] = useState(false);
@@ -69,6 +71,11 @@ export default function DashboardPage() {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
+  };
+
+  const handleCategorySelectFromBreakdown = (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    handleNavigate('transactions');
   };
 
   const currentKPIs = KPI_DATA_BY_RANGE[selectedRange];
@@ -179,7 +186,11 @@ export default function DashboardPage() {
 
             {/* Right: Expense Category Breakdown */}
             <Grid item xs={12} lg={4}>
-              <ExpenseBreakdown selectedRange={selectedRange} />
+              <ExpenseBreakdown
+                selectedRange={selectedRange}
+                selectedCategory={selectedCategory}
+                onSelectCategory={handleCategorySelectFromBreakdown}
+              />
             </Grid>
           </Grid>
 
@@ -187,20 +198,25 @@ export default function DashboardPage() {
           <AIInsightsCard />
 
           {/* 4. Recent Transactions Table */}
-          <TransactionsTable />
+          <TransactionsTable
+            externalCategoryFilter={selectedCategory}
+            onClearExternalFilter={() => setSelectedCategory('All')}
+          />
         </Container>
 
         {/* Bottom subtle copyright note */}
         <Box
           sx={{
             py: 2.5,
-            px: 3.5,
+            px: { xs: 2, sm: 3.5 },
             borderTop: '1px solid #DADBD5',
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'flex-start', sm: 'center' },
             justifyContent: 'space-between',
             bgcolor: '#FCFBF8',
             mt: 'auto',
+            gap: 1,
           }}
         >
           <Box
@@ -211,10 +227,10 @@ export default function DashboardPage() {
               color: '#252923',
             }}
           >
-            AURALIS • AI-Powered Cash Flow Analytics
+            AURALIS &bull; Cash Flow Analytics Workspace
           </Box>
           <Box sx={{ fontSize: '0.72rem', color: '#7D8678' }}>
-            Illustrative Portfolio Demonstration • Verified AES-256 Ledger Encryption
+            Illustrative Portfolio Demonstration &bull; Sample Financial Data
           </Box>
         </Box>
       </Box>
@@ -223,6 +239,7 @@ export default function DashboardPage() {
       <ReportsDialog
         open={reportsOpen}
         onClose={() => setReportsOpen(false)}
+        selectedRange={selectedRange}
       />
       <SettingsDialog
         open={settingsOpen}
@@ -230,5 +247,13 @@ export default function DashboardPage() {
         onOpenWelcome={handleOpenWelcome}
       />
     </Box>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <UserProvider>
+      <DashboardContent />
+    </UserProvider>
   );
 }

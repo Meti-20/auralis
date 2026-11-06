@@ -70,3 +70,28 @@ export interface NotificationItem {
   isRead: boolean;
   type: 'transaction' | 'alert' | 'system';
 }
+
+export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'CAD';
+export type DateFormatOption = 'MMM DD, YYYY' | 'YYYY-MM-DD' | 'DD/MM/YYYY';
+export type NumberFormatOption = 'standard' | 'compact';
+export type InterfaceDensity = 'comfortable' | 'compact';
+
+export interface UserProfile {
+  fullName: string;
+  firstName: string;
+  email: string;
+  companyName: string;
+  initials: string;
+}
+
+export interface UserPreferences {
+  currency: CurrencyCode;
+  currencySymbol: string;
+  dateFormat: DateFormatOption;
+  numberFormat: NumberFormatOption;
+  density: InterfaceDensity;
+  emailAlerts: boolean;
+  weeklyDigest: boolean;
+  burnAlertThreshold: string;
+  aiGlow: boolean;
+}

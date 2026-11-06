@@ -21,9 +21,10 @@ import {
   FileText,
   Settings,
   HelpCircle,
-  ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 import { AuralisLogo } from '../common/AuralisLogo';
+import { useUser } from '@/context/UserContext';
 
 interface SidebarProps {
   activeSection: string;
@@ -50,6 +51,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenProductGuide,
   onCloseMobile,
 }) => {
+  const { profile } = useUser();
+
   const handleItemClick = (item: (typeof NAV_ITEMS)[0]) => {
     if (item.id === 'reports') {
       onOpenReports();
@@ -63,128 +66,177 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
+  const handleOpenGuide = () => {
+    if (onOpenProductGuide) {
+      onOpenProductGuide();
+    }
+    if (onCloseMobile) {
+      onCloseMobile();
+    }
+  };
+
+  const handleProfileClick = () => {
+    onOpenSettings();
+    if (onCloseMobile) {
+      onCloseMobile();
+    }
+  };
+
   return (
     <Box
       sx={{
-        width: 260,
+        width: '100%',
         height: '100%',
         bgcolor: '#FCFBF8',
         borderRight: '1px solid #DADBD5',
         display: 'flex',
         flexDirection: 'column',
         p: 2.5,
-        userSelect: 'none',
       }}
     >
       {/* Brand Header */}
-      <Box sx={{ mb: 3.5, px: 0.5 }}>
+      <Box sx={{ pb: 3, pt: 0.5, borderBottom: '1px solid #DADBD5' }}>
         <AuralisLogo size="medium" linked={false} />
-        <Typography
-          sx={{
-            fontSize: '0.74rem',
-            color: '#7D8678',
-            mt: 0.8,
-            fontWeight: 500,
-            lineHeight: 1.4,
-          }}
-        >
-          Understand your money.
-          <br />
-          Make better decisions.
-        </Typography>
       </Box>
 
-      {/* Main Navigation List */}
-      <List sx={{ p: 0, display: 'flex', flexDirection: 'column', gap: 0.6 }}>
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeSection === item.id;
+      {/* Main Navigation Items */}
+      <Box sx={{ mt: 2.5, flex: 1 }}>
+        <Typography
+          sx={{
+            fontSize: '0.68rem',
+            fontFamily: 'var(--font-manrope)',
+            fontWeight: 800,
+            color: '#7D8678',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            px: 1.5,
+            mb: 1,
+          }}
+        >
+          Menu
+        </Typography>
 
-          return (
-            <ListItem key={item.id} disablePadding>
-              <ListItemButton
-                onClick={() => handleItemClick(item)}
-                sx={{
-                  borderRadius: '10px',
-                  py: 1.1,
-                  px: 1.8,
-                  bgcolor: isActive ? '#EEECE4' : 'transparent',
-                  color: isActive ? '#252923' : '#5A6255',
-                  transition: 'all 0.15s ease',
-                  '&:hover': {
-                    bgcolor: isActive ? '#EEECE4' : 'rgba(238, 236, 228, 0.6)',
-                    color: '#252923',
-                  },
-                }}
-              >
-                <ListItemIcon
+        <List sx={{ p: 0, display: 'flex', flexDirection: 'column', gap: 0.6 }}>
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+
+            return (
+              <ListItem key={item.id} disablePadding>
+                <ListItemButton
+                  onClick={() => handleItemClick(item)}
                   sx={{
-                    minWidth: 32,
-                    color: isActive ? '#3E502C' : '#7D8678',
+                    borderRadius: '10px',
+                    py: 1.1,
+                    px: 1.6,
+                    bgcolor: isActive ? '#252923' : 'transparent',
+                    color: isActive ? '#F8F7F2' : '#5A6255',
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      bgcolor: isActive ? '#3E502C' : '#EEECE4',
+                      color: isActive ? '#F8F7F2' : '#252923',
+                    },
                   }}
                 >
-                  <Icon size={18} strokeWidth={isActive ? 2.4 : 1.8} />
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{
-                    fontFamily: 'var(--font-manrope)',
-                    fontWeight: isActive ? 700 : 500,
-                    fontSize: '0.88rem',
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
-      </List>
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 32,
+                      color: isActive ? '#DDF0CE' : '#7D8678',
+                    }}
+                  >
+                    <Icon size={18} strokeWidth={isActive ? 2.4 : 2} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{
+                      fontFamily: 'var(--font-manrope)',
+                      fontWeight: isActive ? 700 : 600,
+                      fontSize: '0.86rem',
+                    }}
+                  />
+                  {item.isModal && (
+                    <Box
+                      sx={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        bgcolor: isActive ? '#DDF0CE' : '#DADBD5',
+                      }}
+                    />
+                  )}
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+        </List>
+      </Box>
 
-      {/* Product Guide quick button */}
+      {/* Product Guide Quick Link */}
       {onOpenProductGuide && (
-        <Box sx={{ mt: 'auto', mb: 1.5 }}>
-          <ListItemButton
-            onClick={() => {
-              onOpenProductGuide();
-              if (onCloseMobile) onCloseMobile();
-            }}
+        <Box sx={{ mb: 1.5 }}>
+          <Box
+            onClick={handleOpenGuide}
             sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.2,
+              p: 1.3,
               borderRadius: '10px',
-              py: 0.9,
-              px: 1.5,
               bgcolor: 'rgba(221, 240, 206, 0.45)',
               border: '1px solid #CBD8BA',
-              color: '#2F3C22',
+              cursor: 'pointer',
               transition: 'all 0.15s ease',
               '&:hover': {
-                bgcolor: 'rgba(221, 240, 206, 0.8)',
+                bgcolor: 'rgba(221, 240, 206, 0.7)',
+                borderColor: '#A5B98A',
               },
             }}
           >
-            <ListItemIcon sx={{ minWidth: 28, color: '#3E502C' }}>
-              <HelpCircle size={16} />
-            </ListItemIcon>
-            <ListItemText
-              primary="Product Guide"
-              primaryTypographyProps={{
-                fontFamily: 'var(--font-manrope)',
-                fontWeight: 700,
-                fontSize: '0.82rem',
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: '6px',
+                bgcolor: '#DDF0CE',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#3E502C',
+                flexShrink: 0,
               }}
-            />
-          </ListItemButton>
+            >
+              <Sparkles size={14} />
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography
+                sx={{
+                  fontFamily: 'var(--font-manrope)',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  color: '#252923',
+                  lineHeight: 1.2,
+                }}
+              >
+                Product Guide
+              </Typography>
+              <Typography sx={{ fontSize: '0.68rem', color: '#5A6255', lineHeight: 1.2 }}>
+                Revisit onboarding tour
+              </Typography>
+            </Box>
+          </Box>
         </Box>
       )}
 
-      {/* Bottom User Profile Section */}
-      <Box sx={{ mt: onOpenProductGuide ? 0 : 'auto', pt: 2, borderTop: '1px solid #DADBD5' }}>
+      {/* User Profile Footer */}
+      <Box sx={{ pt: 2, borderTop: '1px solid #DADBD5' }}>
         <Box
-          onClick={onOpenSettings}
+          onClick={handleProfileClick}
           sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 1.5,
-            p: 1.2,
-            borderRadius: '12px',
+            gap: 1.4,
+            p: 1,
+            borderRadius: '10px',
             cursor: 'pointer',
             transition: 'background-color 0.15s ease',
             '&:hover': {
@@ -200,11 +252,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 bgcolor: '#3E502C',
                 color: '#F8F7F2',
                 fontFamily: 'var(--font-manrope)',
-                fontWeight: 700,
+                fontWeight: 800,
                 fontSize: '0.9rem',
               }}
             >
-              MJ
+              {profile.initials || 'MJ'}
             </Avatar>
             <Box
               sx={{
@@ -233,7 +285,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 textOverflow: 'ellipsis',
               }}
             >
-              Meti Jemal
+              {profile.fullName}
             </Typography>
             <Typography
               sx={{
@@ -244,7 +296,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 textOverflow: 'ellipsis',
               }}
             >
-              Acme Technologies Inc.
+              {profile.companyName}
             </Typography>
           </Box>
         </Box>
@@ -254,4 +306,3 @@ export const Sidebar: React.FC<SidebarProps> = ({
 };
 
 export default Sidebar;
-

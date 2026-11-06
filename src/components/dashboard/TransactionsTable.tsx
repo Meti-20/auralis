@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -19,26 +19,50 @@ import {
   FormControl,
   Button,
   Tooltip,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Search,
   ArrowDownLeft,
   ArrowUpRight,
-  Filter,
-  ArrowUpDown,
   CheckCircle2,
   Clock,
   X,
   HelpCircle,
+  Download,
+  Filter,
 } from 'lucide-react';
 import { DashboardTransaction } from '@/types';
 import { MOCK_TRANSACTIONS_LIST } from '@/data/mockData';
+import { useUser } from '@/context/UserContext';
+import { exportTransactionsToCSV } from '@/utils/exportUtils';
 
-export const TransactionsTable: React.FC = () => {
+interface TransactionsTableProps {
+  externalCategoryFilter?: string;
+  onClearExternalFilter?: () => void;
+}
+
+export const TransactionsTable: React.FC<TransactionsTableProps> = ({
+  externalCategoryFilter,
+  onClearExternalFilter,
+}) => {
+  const { profile, preferences, formatMoney, formatDate } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedType, setSelectedType] = useState<'all' | 'income' | 'expense'>('all');
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc'>('date-desc');
+  const [exportSnackbar, setExportSnackbar] = useState<{ open: boolean; message: string }>({
+    open: false,
+    message: '',
+  });
+
+  // Sync external category filter if passed from ExpenseBreakdown
+  useEffect(() => {
+    if (externalCategoryFilter) {
+      setSelectedCategory(externalCategoryFilter);
+    }
+  }, [externalCategoryFilter]);
 
   const filteredTransactions = useMemo(() => {
     let result = [...MOCK_TRANSACTIONS_LIST];
@@ -56,7 +80,7 @@ export const TransactionsTable: React.FC = () => {
 
     // Category filter
     if (selectedCategory !== 'All') {
-      result = result.filter((t) => t.category === selectedCategory);
+      result = result.filter((t) => t.category.toLowerCase() === selectedCategory.toLowerCase());
     }
 
     // Type filter
@@ -85,6 +109,41 @@ export const TransactionsTable: React.FC = () => {
   }, [searchQuery, selectedCategory, selectedType, sortBy]);
 
   const categories = ['All', 'Income', 'Salaries', 'Marketing', 'Operations', 'Software', 'Other'];
+
+  const handleExportCSV = () => {
+    if (filteredTransactions.length === 0) {
+      setExportSnackbar({
+        open: true,
+        message: 'No transactions to export with current filters.',
+      });
+      return;
+    }
+
+    const { success, count, filename } = exportTransactionsToCSV(
+      filteredTransactions,
+      preferences.currencySymbol,
+      profile.companyName
+    );
+
+    if (success) {
+      setExportSnackbar({
+        open: true,
+        message: `Successfully exported ${count} transaction${count === 1 ? '' : 's'} to ${filename}`,
+      });
+    } else {
+      setExportSnackbar({
+        open: true,
+        message: 'Export failed. Please check your browser permissions.',
+      });
+    }
+  };
+
+  const handleSelectCategory = (cat: string) => {
+    setSelectedCategory(cat);
+    if (cat === 'All' && onClearExternalFilter) {
+      onClearExternalFilter();
+    }
+  };
 
   return (
     <Paper
@@ -123,7 +182,7 @@ export const TransactionsTable: React.FC = () => {
               Recent Transactions
             </Typography>
             <Tooltip
-              title="Real-time transaction stream across your connected accounts. Green (+) rows represent income, while dark (-) rows reflect business expenses."
+              title="Sample transaction stream across business accounts. Green (+) rows represent income, while dark (-) rows reflect operational expenses."
               arrow
               placement="top"
               componentsProps={{
@@ -140,7 +199,15 @@ export const TransactionsTable: React.FC = () => {
                 },
               }}
             >
-              <Box component="span" sx={{ display: 'inline-flex', cursor: 'help', color: '#7D8678', '&:hover': { color: '#252923' } }}>
+              <Box
+                component="span"
+                sx={{
+                  display: 'inline-flex',
+                  cursor: 'help',
+                  color: '#7D8678',
+                  '&:hover': { color: '#252923' },
+                }}
+              >
                 <HelpCircle size={14} />
               </Box>
             </Tooltip>
@@ -157,16 +224,16 @@ export const TransactionsTable: React.FC = () => {
             />
           </Box>
           <Typography sx={{ fontSize: '0.78rem', color: '#7D8678', mt: 0.3 }}>
-            Real-time cleared transaction stream across connected banking accounts
+            Sample transaction records across business accounts
           </Typography>
         </Box>
 
-        {/* Search & Sort Controls */}
+        {/* Search, Sort, and Export Controls */}
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 1.5,
+            gap: 1.2,
             width: { xs: '100%', md: 'auto' },
             flexWrap: 'wrap',
           }}
@@ -196,7 +263,8 @@ export const TransactionsTable: React.FC = () => {
               ) : null,
             }}
             sx={{
-              width: { xs: '100%', sm: 220 },
+              flexGrow: { xs: 1, sm: 0 },
+              width: { xs: '100%', sm: 200 },
               '& .MuiOutlinedInput-root': {
                 borderRadius: '10px',
                 bgcolor: '#FAF9F5',
@@ -208,7 +276,7 @@ export const TransactionsTable: React.FC = () => {
           />
 
           {/* Sort Selector */}
-          <FormControl size="small" sx={{ minWidth: 140 }}>
+          <FormControl size="small" sx={{ minWidth: { xs: 'calc(50% - 6px)', sm: 135 } }}>
             <Select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
@@ -227,48 +295,127 @@ export const TransactionsTable: React.FC = () => {
               <MenuItem value="amount-asc">Lowest Amount</MenuItem>
             </Select>
           </FormControl>
+
+          {/* Export CSV Button */}
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleExportCSV}
+            startIcon={<Download size={14} />}
+            sx={{
+              height: 38,
+              minWidth: { xs: 'calc(50% - 6px)', sm: 'auto' },
+              flexGrow: { xs: 1, sm: 0 },
+              bgcolor: '#252923',
+              color: '#F8F7F2',
+              fontFamily: 'var(--font-manrope)',
+              fontWeight: 700,
+              fontSize: '0.78rem',
+              borderRadius: '10px',
+              textTransform: 'none',
+              px: 1.8,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 6px rgba(37, 41, 35, 0.12)',
+              '&:hover': {
+                bgcolor: '#3E502C',
+              },
+            }}
+          >
+            Export CSV
+          </Button>
         </Box>
       </Box>
 
-      {/* Category Filter Chips */}
+      {/* Category Filter Chips & Type Filter */}
       <Box
         sx={{
           display: 'flex',
-          gap: 0.8,
-          mb: 2.5,
-          overflowX: 'auto',
-          pb: 0.5,
-          '&::-webkit-scrollbar': { height: 4 },
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1.5,
+          mb: 2.2,
+          flexWrap: 'wrap',
         }}
       >
-        {categories.map((cat) => {
-          const isSelected = selectedCategory === cat;
-          return (
-            <Chip
-              key={cat}
-              label={cat}
-              size="small"
-              onClick={() => setSelectedCategory(cat)}
-              sx={{
-                fontSize: '0.74rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                bgcolor: isSelected ? '#252923' : '#EEECE4',
-                color: isSelected ? '#F8F7F2' : '#5A6255',
-                border: isSelected ? '1px solid #252923' : '1px solid transparent',
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: isSelected ? '#3E502C' : '#DADBD5',
-                },
-              }}
-            />
-          );
-        })}
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 0.8,
+            overflowX: 'auto',
+            pb: 0.5,
+            maxWidth: '100%',
+            '&::-webkit-scrollbar': { height: 4 },
+          }}
+        >
+          {categories.map((cat) => {
+            const isSelected = selectedCategory.toLowerCase() === cat.toLowerCase();
+            return (
+              <Chip
+                key={cat}
+                label={cat}
+                size="small"
+                onClick={() => handleSelectCategory(cat)}
+                sx={{
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  bgcolor: isSelected ? '#252923' : '#EEECE4',
+                  color: isSelected ? '#F8F7F2' : '#5A6255',
+                  border: isSelected ? '1px solid #252923' : '1px solid transparent',
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    bgcolor: isSelected ? '#3E502C' : '#DADBD5',
+                  },
+                }}
+              />
+            );
+          })}
+        </Box>
+
+        {/* Income / Expense Type Filter Toggle */}
+        <Box sx={{ display: 'flex', gap: 0.6 }}>
+          {(['all', 'income', 'expense'] as const).map((typeKey) => {
+            const active = selectedType === typeKey;
+            const labels = { all: 'All Flows', income: 'Income Only', expense: 'Expenses Only' };
+            return (
+              <Button
+                key={typeKey}
+                size="small"
+                onClick={() => setSelectedType(typeKey)}
+                sx={{
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  py: 0.3,
+                  px: 1,
+                  borderRadius: '8px',
+                  textTransform: 'none',
+                  bgcolor: active ? '#EEECE4' : 'transparent',
+                  color: active ? '#252923' : '#7D8678',
+                  border: active ? '1px solid #DADBD5' : '1px solid transparent',
+                  '&:hover': {
+                    bgcolor: '#EEECE4',
+                    color: '#252923',
+                  },
+                }}
+              >
+                {labels[typeKey]}
+              </Button>
+            );
+          })}
+        </Box>
       </Box>
 
       {/* Transactions Table Container */}
-      <TableContainer sx={{ maxHeight: 420, overflowX: 'auto' }}>
-        <Table size="small" stickyHeader>
+      <TableContainer
+        sx={{
+          maxHeight: 440,
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          borderRadius: '8px',
+          border: '1px solid #EBEBE5',
+        }}
+      >
+        <Table size="small" stickyHeader sx={{ minWidth: 640 }}>
           <TableHead>
             <TableRow>
               <TableCell sx={{ bgcolor: '#FAF9F5', fontSize: '0.74rem', fontWeight: 700, color: '#5A6255', borderBottom: '1px solid #DADBD5' }}>
@@ -284,7 +431,7 @@ export const TransactionsTable: React.FC = () => {
                 Status
               </TableCell>
               <TableCell align="right" sx={{ bgcolor: '#FAF9F5', fontSize: '0.74rem', fontWeight: 700, color: '#5A6255', borderBottom: '1px solid #DADBD5' }}>
-                Amount
+                Amount ({preferences.currencySymbol})
               </TableCell>
             </TableRow>
           </TableHead>
@@ -302,8 +449,9 @@ export const TransactionsTable: React.FC = () => {
                       setSearchQuery('');
                       setSelectedCategory('All');
                       setSelectedType('all');
+                      if (onClearExternalFilter) onClearExternalFilter();
                     }}
-                    sx={{ fontSize: '0.76rem', color: '#3E502C', textTransform: 'none' }}
+                    sx={{ fontSize: '0.76rem', color: '#3E502C', textTransform: 'none', fontWeight: 700 }}
                   >
                     Reset all filters
                   </Button>
@@ -369,7 +517,7 @@ export const TransactionsTable: React.FC = () => {
                   {/* Date */}
                   <TableCell sx={{ py: 1.4, borderBottom: '1px solid #EBEBE5' }}>
                     <Typography sx={{ fontSize: '0.8rem', color: '#5A6255', whiteSpace: 'nowrap' }}>
-                      {tx.date}
+                      {formatDate(tx.rawDate, tx.date)}
                     </Typography>
                   </TableCell>
 
@@ -403,7 +551,12 @@ export const TransactionsTable: React.FC = () => {
                         color: tx.type === 'income' ? '#367B4A' : '#252923',
                       }}
                     >
-                      {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {tx.type === 'income' ? '+' : '-'}
+                      {preferences.currencySymbol}
+                      {tx.amount.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -412,9 +565,31 @@ export const TransactionsTable: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Export notification snackbar */}
+      <Snackbar
+        open={exportSnackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setExportSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setExportSnackbar((prev) => ({ ...prev, open: false }))}
+          severity="success"
+          sx={{
+            bgcolor: '#252923',
+            color: '#F8F7F2',
+            fontSize: '0.82rem',
+            borderRadius: '10px',
+            border: '1px solid #DADBD5',
+            '& .MuiAlert-icon': { color: '#A5B98A' },
+          }}
+        >
+          {exportSnackbar.message}
+        </Alert>
+      </Snackbar>
     </Paper>
   );
 };
 
 export default TransactionsTable;
-

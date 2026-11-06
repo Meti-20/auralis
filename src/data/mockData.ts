@@ -53,7 +53,7 @@ export const KPI_DATA_BY_RANGE: Record<DateRange, SummaryKPIs> = {
       trendDirection: 'up',
       comparisonLabel: 'across 3 accounts',
       iconType: 'balance',
-      description: 'Total liquid working capital across verified bank accounts',
+      description: 'Total liquid working capital across sample business accounts',
     },
   },
   '7d': {
@@ -99,7 +99,7 @@ export const KPI_DATA_BY_RANGE: Record<DateRange, SummaryKPIs> = {
       trendDirection: 'up',
       comparisonLabel: 'across 3 accounts',
       iconType: 'balance',
-      description: 'Current real-time liquid bank balance',
+      description: 'Sample liquid bank balance across accounts',
     },
   },
   '90d': {

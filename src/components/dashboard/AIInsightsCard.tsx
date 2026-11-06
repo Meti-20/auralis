@@ -14,6 +14,8 @@ import {
   DialogContent,
   DialogActions,
   Tooltip,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Sparkles,
@@ -27,14 +29,27 @@ import {
   ArrowRight,
   ShieldCheck,
   HelpCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { AIInsightItem } from '@/types';
 import { MOCK_AI_INSIGHTS } from '@/data/mockData';
+import { useUser } from '@/context/UserContext';
+
+const ACTION_FEEDBACK_MESSAGES: Record<string, string> = {
+  'insight-1': 'Simulated action applied: Paid acquisition budget capped at $4,500/mo. Projected burn variance updated to +$562/mo.',
+  'insight-2': 'Simulated action applied: $15,000 monthly operating surplus scheduled for short-term 4.8% APY treasury yield buffer.',
+  'insight-3': 'Simulated action applied: Duplicate contract flagged. Consolidating to single document provider and downgrading 6 unused seats.',
+};
 
 export const AIInsightsCard: React.FC = () => {
+  const { preferences } = useUser();
   const [selectedInsight, setSelectedInsight] = useState<AIInsightItem | null>(null);
   const [appliedActions, setAppliedActions] = useState<Record<string, boolean>>({});
   const [expandedId, setExpandedId] = useState<string | null>(MOCK_AI_INSIGHTS[0].id);
+  const [actionSnackbar, setActionSnackbar] = useState<{ open: boolean; message: string }>({
+    open: false,
+    message: '',
+  });
 
   const toggleExpand = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -42,10 +57,24 @@ export const AIInsightsCard: React.FC = () => {
 
   const handleApplyAction = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    const isNowApplied = !appliedActions[id];
+
     setAppliedActions((prev) => ({
       ...prev,
-      [id]: !prev[id],
+      [id]: isNowApplied,
     }));
+
+    if (isNowApplied) {
+      setActionSnackbar({
+        open: true,
+        message: ACTION_FEEDBACK_MESSAGES[id] || 'Simulated recommendation applied to workspace model.',
+      });
+    } else {
+      setActionSnackbar({
+        open: true,
+        message: 'Simulated action reverted to baseline.',
+      });
+    }
   };
 
   const getCategoryIcon = (category: AIInsightItem['category']) => {
@@ -81,25 +110,29 @@ export const AIInsightsCard: React.FC = () => {
           borderRadius: '16px',
           bgcolor: '#FCFBF8',
           border: '1px solid #CBD8BA',
-          boxShadow: '0 4px 20px rgba(165, 185, 138, 0.12)',
+          boxShadow: preferences.aiGlow
+            ? '0 4px 20px rgba(165, 185, 138, 0.16)'
+            : '0 2px 8px rgba(37, 41, 35, 0.02)',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {/* Subtle pale lime ambient glow */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: -30,
-            right: -30,
-            width: 140,
-            height: 140,
-            borderRadius: '50%',
-            bgcolor: 'rgba(221, 240, 206, 0.45)',
-            filter: 'blur(32px)',
-            pointerEvents: 'none',
-          }}
-        />
+        {/* Subtle pale lime ambient glow (toggleable via appearance preferences) */}
+        {preferences.aiGlow && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -30,
+              right: -30,
+              width: 140,
+              height: 140,
+              borderRadius: '50%',
+              bgcolor: 'rgba(221, 240, 206, 0.45)',
+              filter: 'blur(32px)',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
 
         {/* Card Header */}
         <Box
@@ -143,7 +176,7 @@ export const AIInsightsCard: React.FC = () => {
                   Auralis AI Insights
                 </Typography>
                 <Tooltip
-                  title="Simulated autonomous reasoning detecting spending anomalies, cash flow surplus health, and recurring software savings."
+                  title="Simulated pattern heuristics detecting spending changes, cash flow surplus health, and recurring software savings."
                   arrow
                   placement="top"
                   componentsProps={{
@@ -166,7 +199,7 @@ export const AIInsightsCard: React.FC = () => {
                 </Tooltip>
               </Box>
               <Typography sx={{ fontSize: '0.74rem', color: '#7D8678' }}>
-                Autonomous Financial Pattern Intelligence
+                Simulated Financial Pattern Analysis
               </Typography>
             </Box>
           </Box>
@@ -230,7 +263,7 @@ export const AIInsightsCard: React.FC = () => {
                       }}
                     />
                     <Chip
-                      label={`${insight.confidenceScore}% confidence`}
+                      label={`${insight.confidenceScore}% Sample Match`}
                       size="small"
                       sx={{
                         height: 20,
@@ -384,7 +417,7 @@ export const AIInsightsCard: React.FC = () => {
                           },
                         }}
                       >
-                        {isApplied ? 'Action Applied' : 'Simulate Action'}
+                        {isApplied ? 'Action Simulated (Active)' : 'Simulate Action'}
                       </Button>
                     </Box>
                   </Box>
@@ -403,11 +436,12 @@ export const AIInsightsCard: React.FC = () => {
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: '16px',
+            borderRadius: { xs: '16px', sm: '20px' },
             bgcolor: '#FCFBF8',
             border: '1px solid #DADBD5',
             boxShadow: '0 24px 64px rgba(37, 41, 35, 0.15)',
-            p: 1,
+            p: { xs: 0.5, sm: 1 },
+            m: { xs: 1.5, sm: 2 },
           },
         }}
       >
@@ -428,7 +462,7 @@ export const AIInsightsCard: React.FC = () => {
                   {selectedInsight.title}
                 </Typography>
               </Box>
-              <IconButton size="small" onClick={() => setSelectedInsight(null)}>
+              <IconButton size="small" onClick={() => setSelectedInsight(null)} aria-label="Close dialog">
                 <X size={18} />
               </IconButton>
             </DialogTitle>
@@ -446,7 +480,7 @@ export const AIInsightsCard: React.FC = () => {
                   }}
                 />
                 <Chip
-                  label={`${selectedInsight.confidenceScore}% Algorithm Confidence`}
+                  label={`${selectedInsight.confidenceScore}% Sample Match`}
                   size="small"
                   sx={{
                     fontWeight: 600,
@@ -482,7 +516,7 @@ export const AIInsightsCard: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
                 <ShieldCheck size={14} color="#7D8678" />
                 <Typography sx={{ fontSize: '0.72rem', color: '#7D8678' }}>
-                  Simulated recommendation based on local sample transactions.
+                  Simulated recommendation based on local illustrative sample data.
                 </Typography>
               </Box>
             </DialogContent>
@@ -516,15 +550,38 @@ export const AIInsightsCard: React.FC = () => {
                   '&:hover': { bgcolor: appliedActions[selectedInsight.id] ? '#2F663D' : '#3E502C' },
                 }}
               >
-                {appliedActions[selectedInsight.id] ? 'Action Simulated' : 'Simulate Action'}
+                {appliedActions[selectedInsight.id] ? 'Revert Simulation' : 'Simulate Action'}
               </Button>
             </DialogActions>
           </>
         )}
       </Dialog>
+
+      {/* Action feedback snackbar */}
+      <Snackbar
+        open={actionSnackbar.open}
+        autoHideDuration={4500}
+        onClose={() => setActionSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setActionSnackbar((prev) => ({ ...prev, open: false }))}
+          severity="success"
+          icon={<Zap size={16} />}
+          sx={{
+            bgcolor: '#252923',
+            color: '#F8F7F2',
+            fontSize: '0.82rem',
+            borderRadius: '10px',
+            border: '1px solid #A5B98A',
+            '& .MuiAlert-icon': { color: '#DDF0CE' },
+          }}
+        >
+          {actionSnackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };
 
 export default AIInsightsCard;
-

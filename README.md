@@ -2,7 +2,7 @@
 
 > **"Understand your money. Make better decisions."**
 
-Auralis is a focused, polished, single-page fintech SaaS dashboard built for small businesses, founders, and finance operators. It delivers immediate clarity on capital velocity: how much money you earn, how much you spend, how much cash remains, where your money goes, and what financial decisions to make next.
+Auralis is a focused, polished, single-page fintech SaaS dashboard built for small businesses, founders, and finance operators. It delivers immediate clarity on capital velocity: how much money you earn, how much you spend, how much cash remains, where your money goes, and what financial decisions to consider next.
 
 ---
 
@@ -13,10 +13,10 @@ Auralis provides an executive-grade cash flow analytics experience on a single, 
 1. **Sidebar Navigation**
    - Architectural abstract A-shaped brand mark & clean AURALIS wordmark.
    - Direct section navigation: **Overview**, **Cash Flow**, **Transactions**.
-   - Interactive modal actions: **Reports** (automated statement generator) and **Settings** (workspace currency & alert configuration).
+   - Interactive modal actions: **Reports** (automated statement generator & exporter) and **Settings** (workspace profile, currency, date format, and alert configuration).
    - Direct access to **Product Guide & Intro**.
    - User profile status card at the bottom (Meti Jemal • Acme Technologies Inc.).
-   - Full mobile navigation support with a responsive drawer.
+   - Full mobile navigation support with an accessible responsive drawer.
 
 2. **Top Navigation**
    - Page title: **Financial Overview** with welcome greeting (*"Welcome back, Meti • Acme Technologies Inc."*).
@@ -28,14 +28,15 @@ Auralis provides an executive-grade cash flow analytics experience on a single, 
    - **Total Income:** `$48,250` (+14.2% vs. previous 30 days)
    - **Total Expenses:** `$21,840` (-3.8% vs. previous 30 days)
    - **Net Cash Flow:** `$26,410` (+28.4% vs. previous 30 days)
-   - **Available Balance:** `$72,650` (+18.2% across 3 verified accounts)
-   - *All figures dynamically recalculate when changing date ranges and format with tabular numerals.*
+   - **Available Balance:** `$72,650` (+18.2% across sample business accounts)
+   - *All figures dynamically recalculate when changing date ranges, format according to user currency and number preferences, and format with tabular numerals.*
 
 4. **Main Cash Flow Analytics**
    - High-fidelity Recharts AreaChart visualizing **Income**, **Expenses**, and **Net Cash Flow**.
    - **Weekly** vs. **Monthly** view toggle.
    - Dynamic date-range synchronization (`7d`, `30d`, `90d`).
-   - Custom hover tooltips and clear visual legend.
+   - Custom hover tooltips with currency formatting.
+   - **Interactive Series Visibility Legend:** Clicking Income, Expenses, or Net Cash Flow toggles individual chart series visibility.
 
 5. **Expense Category Breakdown**
    - Recharts Donut visualization of operational disbursements.
@@ -45,29 +46,49 @@ Auralis provides an executive-grade cash flow analytics experience on a single, 
      - **Operations:** `$4,805` (22%) — Medium Olive Sage
      - **Software:** `$2,621` (12%) — Light Sage
      - **Other:** `$1,310` (6%) — Soft Grey
+   - **Interactive Category Filtering:** Clicking any category or donut slice highlights the segment and filters the ledger to that department.
 
-6. **Recent Transactions Table**
+6. **Recent Transactions Ledger & Client-Side Export**
    - Complete ledger with Transaction Name, Category, Date, Status (*Cleared* / *Pending*), and Amount.
    - Distinct green (`+`) income pills and dark (`-`) expense pills.
-   - Real-time search filter by transaction name or bank account.
+   - Real-time search filter across transaction names, categories, and accounts.
    - Category filtering chips (*All*, *Income*, *Salaries*, *Marketing*, *Operations*, *Software*, *Other*).
-   - Working sorting (*Newest First*, *Oldest First*, *Highest Amount*, *Lowest Amount*).
+   - Flow type filtering (*All Flows*, *Income Only*, *Expenses Only*).
+   - Sorting (*Newest First*, *Oldest First*, *Highest Amount*, *Lowest Amount*).
+   - **Functional Client-Side CSV Export:** One-click download of currently filtered transactions with RFC 4180 escaping, UTF-8 BOM, and standardized filename (`auralis-transactions-YYYY-MM-DD.csv`).
 
 7. **Auralis AI Insights**
-   - Visually distinct highlight card with pale lime ambient glow.
+   - Visually distinct highlight card with toggleable pale lime ambient glow.
    - Three sample insights:
      1. **Spending Analysis:** *"Marketing expenses increased by 12% compared with the previous period."*
      2. **Cash Flow Observation:** *"Your income is currently higher than your expenses."*
      3. **Saving Opportunity:** *"Review recurring software subscriptions to identify potential savings."*
-   - Interactive **"Explore insight"** button opening an analytical deep-dive modal with root-cause analysis and a simulated action confirmation button.
+   - Interactive **"Explore insight"** button opening an analytical deep-dive modal with root-cause analysis.
+   - Functional **"Simulate Action"** buttons with actionable feedback toast alerts and rollback support.
 
-8. **First-Time User Welcome Experience (`WelcomeScreen.tsx`)**
-   - Immersive, non-marketing onboarding introduction greeting Meti (*"Welcome, Meti!"*).
-   - Introduces the 4 core capabilities: Cash Flow Analytics, Expense Tracking, AI Financial Insights, and Transaction Monitoring.
-   - Prominent *"Explore My Dashboard"* CTA button with smooth transition into the financial workspace.
-   - `localStorage` persistence (`auralis_intro_completed`) ensuring the introduction only shows once on first visit.
-   - Reopenable at any time via **Settings > Launch Guide**, **Profile Menu > Product Guide & Intro**, or the sidebar quick link.
-   - Interactive contextual help tooltips across all KPIs, charts, and table headers.
+8. **Comprehensive Workspace Settings Dialog**
+   - Multi-tab responsive configuration modal:
+     - **Profile:** Full Name, Avatar Initials, Email, Company Name.
+     - **Financial Preferences:** Reporting Currency (USD `$`, EUR `€`, GBP `£`, CAD `CA$`), Date Formats, Number Formatting (Standard commas vs Compact units).
+     - **Notifications:** Email Anomaly Alerts, Weekly Cash Digest, Monthly Burn Alert Threshold ($).
+     - **Appearance:** AI Glow Highlights toggle, UI Layout Density (Comfortable vs Compact).
+     - **Product Guide:** Replay the first-time onboarding introduction.
+     - **Demo Reset:** One-click restoration of initial default workspace state.
+   - Full client-side persistence via `localStorage` updating across all components in real-time.
+
+9. **Financial Statement Generator (`ReportsDialog.tsx`)**
+   - Generates and downloads real client-side financial statements:
+     - Cash Flow & Inflow Statement
+     - Departmental Expense Breakdown
+     - Tax & Compliance Preparation Ledger
+   - Exports in standard CSV format or opens a styled, printable presentation ready for PDF export (`window.print()`).
+
+10. **First-Time User Welcome Experience (`WelcomeScreen.tsx`)**
+    - Immersive onboarding introduction greeting Meti (*"Welcome, Meti!"*).
+    - Introduces the 4 core capabilities: Cash Flow Analytics, Expense Tracking, AI Financial Insights, and Transaction Monitoring.
+    - Prominent *"Explore My Dashboard"* CTA button with smooth transition into the financial workspace.
+    - `localStorage` persistence (`auralis_intro_completed`) ensuring the introduction displays once on first visit.
+    - Reopenable at any time via **Settings > Launch Guide**, **Profile Menu > Product Guide & Intro**, or the sidebar quick link.
 
 ---
 
@@ -98,7 +119,8 @@ Built strictly with the required warm neutral palette:
 - **UI Components & Theme:** Material UI (MUI v5) + Emotion SSR Cache
 - **Data Visualizations:** Recharts v2 (AreaChart, Donut PieChart, ResponsiveContainer)
 - **Icons:** Lucide React
-- **Styling:** Custom CSS / MUI `sx` / Emotion (Zero Tailwind CSS)
+- **Animations:** Framer Motion
+- **State Management:** React Context (`UserContext`) with `localStorage` persistence
 
 ---
 
@@ -118,22 +140,27 @@ AURALIS/
 │   │   ├── common/
 │   │   │   └── AuralisLogo.tsx       # SVG abstract A brand mark & wordmark
 │   │   └── dashboard/
-│   │       ├── AIInsightsCard.tsx    # 3 AI insights with expandable detail dialog
-│   │       ├── CashFlowAnalyticsChart.tsx # Recharts interactive area chart
-│   │       ├── ExpenseBreakdown.tsx  # Donut chart & category progress list
-│   │       ├── ReportsDialog.tsx     # Statement export dialog
-│   │       ├── SettingsDialog.tsx    # Workspace settings modal
+│   │       ├── AIInsightsCard.tsx    # 3 AI insights with simulation action & modal
+│   │       ├── CashFlowAnalyticsChart.tsx # Recharts interactive area chart with legend toggles
+│   │       ├── ExpenseBreakdown.tsx  # Donut chart & clickable category progress list
+│   │       ├── ReportsDialog.tsx     # Statement export dialog (CSV / Printable PDF)
+│   │       ├── SettingsDialog.tsx    # Multi-tab workspace settings modal
 │   │       ├── Sidebar.tsx           # Desktop & mobile drawer navigation
 │   │       ├── SummaryKPICards.tsx   # 4 KPI cards (Income, Expenses, Net, Balance)
 │   │       ├── TopNavbar.tsx         # Date range selector, notifications, profile
-│   │       └── TransactionsTable.tsx # Filterable, searchable, sortable ledger
+│   │       ├── TransactionsTable.tsx # Filterable ledger with CSV export
+│   │       └── WelcomeScreen.tsx     # First-time onboarding experience
+│   ├── context/
+│   │   └── UserContext.tsx           # User profile & preferences state provider
 │   ├── data/
 │   │   └── mockData.ts               # Structured financial sample dataset
 │   ├── theme/
 │   │   ├── theme.ts                  # MUI theme palette & typography
 │   │   └── ThemeRegistry.tsx         # Emotion SSR cache provider
-│   └── types/
-│       └── index.ts                  # TypeScript interface declarations
+│   ├── types/
+│   │   └── index.ts                  # TypeScript interface declarations
+│   └── utils/
+│       └── exportUtils.ts            # Client-side CSV & printable report utilities
 ├── next.config.mjs
 ├── package.json
 ├── tsconfig.json

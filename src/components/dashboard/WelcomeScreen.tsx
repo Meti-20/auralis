@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuralisLogo from '../common/AuralisLogo';
+import { useUser } from '@/context/UserContext';
 
 interface WelcomeScreenProps {
   onDismiss: () => void;
@@ -71,6 +72,7 @@ const CAPABILITIES = [
 ];
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onDismiss }) => {
+  const { profile } = useUser();
   return (
     <Box
       sx={{
@@ -161,7 +163,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onDismiss }) => {
                 mb: 1.5,
               }}
             >
-              Welcome, Meti!
+              Welcome, {profile.firstName || 'Meti'}!
             </Typography>
 
             <Typography

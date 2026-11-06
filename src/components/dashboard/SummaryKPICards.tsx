@@ -12,6 +12,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { SummaryKPIs, KPICardData } from '@/types';
+import { useUser } from '@/context/UserContext';
 
 interface SummaryKPICardsProps {
   kpis: SummaryKPIs;
@@ -50,6 +51,8 @@ export const SummaryKPICards: React.FC<SummaryKPICardsProps> = ({
   activeFilter,
   onCardClick,
 }) => {
+  const { formatMoney } = useUser();
+
   const cards: { key: string; data: KPICardData }[] = [
     { key: 'income', data: kpis.totalIncome },
     { key: 'expenses', data: kpis.totalExpenses },
@@ -72,7 +75,7 @@ export const SummaryKPICards: React.FC<SummaryKPICardsProps> = ({
               sx={{
                 p: { xs: 2.2, sm: 2.8 },
                 borderRadius: '14px',
-                bgcolor: isActive ? '#FCFBF8' : '#FCFBF8',
+                bgcolor: '#FCFBF8',
                 border: isActive ? '1.5px solid #A5B98A' : '1px solid #DADBD5',
                 boxShadow: isActive
                   ? '0 6px 18px rgba(165, 185, 138, 0.18)'
@@ -122,9 +125,10 @@ export const SummaryKPICards: React.FC<SummaryKPICardsProps> = ({
                           bgcolor: '#252923',
                           color: '#F8F7F2',
                           fontSize: '0.74rem',
-                          p: 1,
+                          p: 1.2,
                           borderRadius: '8px',
                           border: '1px solid #DADBD5',
+                          maxWidth: 260,
                         },
                       },
                     }}
@@ -170,7 +174,7 @@ export const SummaryKPICards: React.FC<SummaryKPICardsProps> = ({
                   mb: 1.2,
                 }}
               >
-                {data.formattedAmount}
+                {formatMoney(data.amount)}
               </Typography>
 
               {/* Trend & Comparison Label */}
@@ -212,4 +216,3 @@ export const SummaryKPICards: React.FC<SummaryKPICardsProps> = ({
 };
 
 export default SummaryKPICards;
-

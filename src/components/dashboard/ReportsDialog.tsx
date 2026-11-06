@@ -14,32 +14,72 @@ import {
   Radio,
   IconButton,
   CircularProgress,
+  Alert,
 } from '@mui/material';
-import { FileText, Download, CheckCircle2, X } from 'lucide-react';
+import { FileText, Download, CheckCircle2, X, Printer, ShieldCheck } from 'lucide-react';
+import { DateRange } from '@/types';
+import { KPI_DATA_BY_RANGE, EXPENSE_CATEGORIES_BY_RANGE, MOCK_TRANSACTIONS_LIST } from '@/data/mockData';
+import { useUser } from '@/context/UserContext';
+import { exportFinancialStatementCSV, openPrintableReport } from '@/utils/exportUtils';
 
 interface ReportsDialogProps {
   open: boolean;
   onClose: () => void;
+  selectedRange?: DateRange;
 }
 
-export const ReportsDialog: React.FC<ReportsDialogProps> = ({ open, onClose }) => {
-  const [reportType, setReportType] = useState('cashflow');
-  const [format, setFormat] = useState('pdf');
+export const ReportsDialog: React.FC<ReportsDialogProps> = ({
+  open,
+  onClose,
+  selectedRange = '30d',
+}) => {
+  const { profile, preferences } = useUser();
+  const [reportType, setReportType] = useState<'cashflow' | 'expenses' | 'tax'>('cashflow');
+  const [format, setFormat] = useState<'csv' | 'pdf'>('csv');
   const [isExporting, setIsExporting] = useState(false);
-  const [exportComplete, setExportComplete] = useState(false);
+  const [exportedResult, setExportedResult] = useState<string | null>(null);
 
   const handleExport = () => {
     setIsExporting(true);
-    setExportComplete(false);
+    setExportedResult(null);
+
+    const kpis = KPI_DATA_BY_RANGE[selectedRange];
+    const categories = EXPENSE_CATEGORIES_BY_RANGE[selectedRange];
 
     setTimeout(() => {
-      setIsExporting(false);
-      setExportComplete(true);
-    }, 700);
+      if (format === 'csv') {
+        const { success, filename } = exportFinancialStatementCSV({
+          reportType,
+          dateRange: selectedRange,
+          kpis,
+          categories,
+          transactions: MOCK_TRANSACTIONS_LIST,
+          profile,
+          preferences,
+        });
+        setIsExporting(false);
+        if (success) {
+          setExportedResult(`Generated and downloaded ${filename}`);
+        }
+      } else {
+        // PDF / Printable Statement
+        openPrintableReport({
+          reportType,
+          dateRange: selectedRange,
+          kpis,
+          categories,
+          transactions: MOCK_TRANSACTIONS_LIST,
+          profile,
+          preferences,
+        });
+        setIsExporting(false);
+        setExportedResult('Printable presentation statement opened in a new tab.');
+      }
+    }, 400);
   };
 
   const handleClose = () => {
-    setExportComplete(false);
+    setExportedResult(null);
     setIsExporting(false);
     onClose();
   };
@@ -52,11 +92,12 @@ export const ReportsDialog: React.FC<ReportsDialogProps> = ({ open, onClose }) =
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: '16px',
+          borderRadius: { xs: '16px', sm: '20px' },
           bgcolor: '#FCFBF8',
           border: '1px solid #DADBD5',
           boxShadow: '0 24px 64px rgba(37, 41, 35, 0.15)',
-          p: 1,
+          p: { xs: 1, sm: 1.5 },
+          m: { xs: 1.5, sm: 2 },
         },
       }}
     >
@@ -67,6 +108,7 @@ export const ReportsDialog: React.FC<ReportsDialogProps> = ({ open, onClose }) =
           justifyContent: 'space-between',
           borderBottom: '1px solid #DADBD5',
           pb: 1.5,
+          pt: 1,
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
@@ -81,44 +123,62 @@ export const ReportsDialog: React.FC<ReportsDialogProps> = ({ open, onClose }) =
           >
             <FileText size={18} />
           </Box>
-          <Typography sx={{ fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: '1.05rem', color: '#252923' }}>
-            Export Financial Reports
+          <Typography sx={{ fontFamily: 'var(--font-manrope)', fontWeight: 800, fontSize: { xs: '0.98rem', sm: '1.1rem' }, color: '#252923' }}>
+            Export Financial Statements
           </Typography>
         </Box>
-        <IconButton size="small" onClick={handleClose}>
+        <IconButton size="small" onClick={handleClose} aria-label="Close dialog">
           <X size={18} />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ py: 2.5 }}>
+      <DialogContent sx={{ py: 2.5, px: { xs: 2, sm: 3 } }}>
         <Typography sx={{ fontSize: '0.84rem', color: '#5A6255', mb: 2 }}>
-          Generate presentation-ready executive digests or accounting ledger exports for your investors, accountants, and board.
+          Download executive digests and itemized spreadsheets for {profile.companyName} covering the trailing{' '}
+          <strong>{selectedRange.toUpperCase()}</strong> window.
         </Typography>
 
         {/* Report Template Selector */}
-        <Box sx={{ mb: 3 }}>
-          <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#252923', textTransform: 'uppercase', mb: 1 }}>
-            Select Statement:
+        <Box sx={{ mb: 2.8 }}>
+          <Typography sx={{ fontSize: '0.76rem', fontWeight: 700, color: '#252923', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>
+            Select Statement Type:
           </Typography>
-          <RadioGroup value={reportType} onChange={(e) => setReportType(e.target.value)}>
+          <RadioGroup value={reportType} onChange={(e) => setReportType(e.target.value as any)}>
             {[
-              { id: 'cashflow', title: 'Cash Flow & Inflow Statement', desc: 'Detailed receipts, vendor disbursements, and net retained cash.' },
-              { id: 'expenses', title: 'Departmental Expense Breakdown', desc: 'Categorized operational outlay: Salaries, Marketing, Operations, Software.' },
-              { id: 'tax', title: 'Tax & Compliance Preparation Ledger', desc: 'Itemized cleared transaction records with merchant references.' },
+              {
+                id: 'cashflow',
+                title: 'Cash Flow & Inflow Statement',
+                desc: 'Executive summary with revenue velocity, vendor debits, and net retained surplus.',
+              },
+              {
+                id: 'expenses',
+                title: 'Departmental Expense Breakdown',
+                desc: 'Itemized operational outlay across Salaries, Marketing, Operations, and Software.',
+              },
+              {
+                id: 'tax',
+                title: 'Tax & Compliance Preparation Ledger',
+                desc: 'Cleared transaction ledger records with merchant references and accounts.',
+              },
             ].map((item) => (
               <Box
                 key={item.id}
-                onClick={() => setReportType(item.id)}
+                onClick={() => setReportType(item.id as any)}
                 sx={{
                   p: 1.5,
                   borderRadius: '10px',
-                  border: reportType === item.id ? '1px solid #A5B98A' : '1px solid #DADBD5',
-                  bgcolor: reportType === item.id ? 'rgba(221, 240, 206, 0.25)' : '#FCFBF8',
+                  border: reportType === item.id ? '1.5px solid #A5B98A' : '1px solid #DADBD5',
+                  bgcolor: reportType === item.id ? 'rgba(221, 240, 206, 0.3)' : '#FAF9F5',
                   mb: 1,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'flex-start',
-                  gap: 1,
+                  gap: 1.2,
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    borderColor: '#A5B98A',
+                    bgcolor: reportType === item.id ? 'rgba(221, 240, 206, 0.4)' : '#FCFBF8',
+                  },
                 }}
               >
                 <Radio
@@ -131,7 +191,7 @@ export const ReportsDialog: React.FC<ReportsDialogProps> = ({ open, onClose }) =
                   <Typography sx={{ fontSize: '0.86rem', fontWeight: 700, color: '#252923' }}>
                     {item.title}
                   </Typography>
-                  <Typography sx={{ fontSize: '0.76rem', color: '#7D8678' }}>
+                  <Typography sx={{ fontSize: '0.74rem', color: '#7D8678', lineHeight: 1.4 }}>
                     {item.desc}
                   </Typography>
                 </Box>
@@ -141,45 +201,50 @@ export const ReportsDialog: React.FC<ReportsDialogProps> = ({ open, onClose }) =
         </Box>
 
         {/* Format Selector */}
-        <Box sx={{ mb: 2 }}>
-          <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#252923', textTransform: 'uppercase', mb: 1 }}>
+        <Box sx={{ mb: 2.5 }}>
+          <Typography sx={{ fontSize: '0.76rem', fontWeight: 700, color: '#252923', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>
             File Format:
           </Typography>
-          <RadioGroup row value={format} onChange={(e) => setFormat(e.target.value)}>
+          <RadioGroup row value={format} onChange={(e) => setFormat(e.target.value as any)}>
+            <FormControlLabel
+              value="csv"
+              control={<Radio size="small" sx={{ color: '#3E502C', '&.Mui-checked': { color: '#3E502C' } }} />}
+              label={<Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>CSV Spreadsheet (.csv)</Typography>}
+            />
             <FormControlLabel
               value="pdf"
               control={<Radio size="small" sx={{ color: '#3E502C', '&.Mui-checked': { color: '#3E502C' } }} />}
-              label={<Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>PDF Presentation</Typography>}
-            />
-            <FormControlLabel
-              value="xlsx"
-              control={<Radio size="small" sx={{ color: '#3E502C', '&.Mui-checked': { color: '#3E502C' } }} />}
-              label={<Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>Excel Spreadsheet (.xlsx)</Typography>}
+              label={<Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>Printable / PDF Statement</Typography>}
             />
           </RadioGroup>
         </Box>
 
-        {exportComplete && (
-          <Box
+        {exportedResult && (
+          <Alert
+            severity="success"
+            icon={<CheckCircle2 size={16} />}
             sx={{
-              p: 1.5,
-              borderRadius: '8px',
               bgcolor: '#E2F3E7',
+              color: '#2F3C22',
+              fontSize: '0.8rem',
+              borderRadius: '8px',
               border: '1px solid #A5B98A',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
+              mb: 1,
             }}
           >
-            <CheckCircle2 size={16} color="#367B4A" />
-            <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: '#2F3C22' }}>
-              Report generated successfully! (Simulated download completed)
-            </Typography>
-          </Box>
+            {exportedResult}
+          </Alert>
         )}
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mt: 1 }}>
+          <ShieldCheck size={14} color="#7D8678" />
+          <Typography sx={{ fontSize: '0.72rem', color: '#7D8678' }}>
+            Client-side generation using local illustrative workspace data.
+          </Typography>
+        </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: 2, pt: 1, gap: 1 }}>
         <Button
           variant="outlined"
           onClick={handleClose}
@@ -189,25 +254,36 @@ export const ReportsDialog: React.FC<ReportsDialogProps> = ({ open, onClose }) =
             textTransform: 'none',
             fontSize: '0.84rem',
             fontWeight: 600,
+            borderRadius: '8px',
           }}
         >
-          Cancel
+          Close
         </Button>
         <Button
           variant="contained"
           disabled={isExporting}
           onClick={handleExport}
-          startIcon={isExporting ? <CircularProgress size={14} color="inherit" /> : <Download size={14} />}
+          startIcon={
+            isExporting ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : format === 'pdf' ? (
+              <Printer size={14} />
+            ) : (
+              <Download size={14} />
+            )
+          }
           sx={{
             bgcolor: '#252923',
             color: '#F8F7F2',
             textTransform: 'none',
             fontSize: '0.84rem',
-            fontWeight: 600,
+            fontWeight: 700,
+            borderRadius: '8px',
+            px: 2.4,
             '&:hover': { bgcolor: '#3E502C' },
           }}
         >
-          {isExporting ? 'Generating...' : `Export ${format.toUpperCase()}`}
+          {isExporting ? 'Generating...' : format === 'pdf' ? 'Open & Print PDF' : 'Download CSV'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -215,4 +291,3 @@ export const ReportsDialog: React.FC<ReportsDialogProps> = ({ open, onClose }) =
 };
 
 export default ReportsDialog;
-
